@@ -67,6 +67,13 @@ print(head(my_data))
 print(tail(my_data))
 cat("Rows:", nrow(my_data), "\n")
 
+# ── Clean EPU for plotting (year/month columns retained) ──
+
+epu_raw_clean <- epu_raw %>%
+  rename(year = Year, month = Month, epu = News_Based_Policy_Uncert_Index) %>%
+  mutate(year = as.numeric(year)) %>%
+  filter(!is.na(year))
+
 # ── Dataset verification plot (replicates DataFigure.png) ─
 
 dir.create("output", showWarnings = FALSE)
@@ -290,11 +297,6 @@ cat("Normalized first column of P:\n")
 print(c(chol_11, chol_21, chol_31, chol_41))
 
 # ── EPU scenario path (Apr–Aug 2023 = Oct 2020–Feb 2021) ──
-
-epu_raw_clean <- epu_raw %>%
-  rename(year = Year, month = Month, epu = News_Based_Policy_Uncert_Index) %>%
-  mutate(year = as.numeric(year)) %>%
-  filter(!is.na(year))
 
 get_epu <- function(y, m) {
   epu_raw_clean$epu[epu_raw_clean$year == y & epu_raw_clean$month == m]
