@@ -1,0 +1,137 @@
+# Homework 2 — VAR with Economic Policy Uncertainty
+**Submitted by:** Olta Recica
+**Deadline:** 19 June 2026
+
+---
+
+## Part I
+
+### 1. Dataset Construction
+
+The dataset combines four monthly U.S. series from 1985M1 to 2023M3:
+
+- **EPU**: News-Based Policy Uncertainty Index (levels), from policyuncertainty.com
+- **PAYEMS**: Nonfarm payroll employment, seasonally adjusted — transformed to month-on-month growth rate: 100 × (X_t / X_{t-1} − 1)
+- **INDPRO**: Industrial production index, seasonally adjusted — same transformation
+- **PCEPI**: Personal consumption expenditures price index, seasonally adjusted — same transformation
+
+After computing growth rates, the usable sample starts at 1985M2 (458 observations).
+
+![Data Figure](output/data_figure.png)
+
+**Figure note:** The four panels show the raw level series used to construct the dataset, covering 1985M1 to 2023M3. Top left: PCE price index (PCEPI), showing a steady upward trend with a slight acceleration post-2020. Top right: nonfarm payroll employment (PAYEMS, in thousands), showing long-run employment growth with clear contractions during the 2008–2009 financial crisis and the COVID-19 pandemic (2020). Bottom left: industrial production index (INDPRO), showing similar cyclical patterns. Bottom right: the News-Based Economic Policy Uncertainty index in levels, showing elevated volatility and a large spike during the COVID-19 pandemic. All series were downloaded from FRED (PAYEMS, INDPRO, PCEPI) and policyuncertainty.com (EPU), seasonally adjusted where applicable.
+
+---
+
+### 2. Reduced-Form VAR(1)
+
+Estimated on 1985M2–2019M12 (418 observations). Ordering: EPU, PAYEMS growth, INDPRO growth, PCEPI growth.
+
+#### 2d. Estimated equations
+
+```
+epu_t      = 46.067 + 0.641·epu_{t-1} − 19.313·payems_g_{t-1} − 3.540·indpro_g_{t-1} − 13.225·pcepi_g_{t-1} + u_epu,t
+
+payems_g_t = 0.058 − 0.000278·epu_{t-1} + 0.679·payems_g_{t-1} + 0.017·indpro_g_{t-1} + 0.033·pcepi_g_{t-1} + u_payems,t
+
+indpro_g_t = 0.111 − 0.001·epu_{t-1} + 0.925·payems_g_{t-1} + 0.073·indpro_g_{t-1} + 0.458·pcepi_g_{t-1} + u_indpro,t
+
+pcepi_g_t  = 0.168 − 0.001·epu_{t-1} + 0.021·payems_g_{t-1} + 0.009·indpro_g_{t-1} + 0.404·pcepi_g_{t-1} + u_pcepi,t
+```
+
+#### 2e. Covariance matrix of residuals
+
+|           | epu       | payems_g  | indpro_g  | pcepi_g   |
+|-----------|-----------|-----------|-----------|-----------|
+| epu       | 964.407   | −0.182    | −0.946    | −0.098    |
+| payems_g  | −0.182    | 0.011     | 0.019     | 0.001     |
+| indpro_g  | −0.946    | 0.019     | 0.317     | −0.002    |
+| pcepi_g   | −0.098    | 0.001     | −0.002    | 0.028     |
+
+---
+
+### 3. Impulse Response Functions
+
+The structural VAR uses recursive (Cholesky) identification with EPU ordered first, meaning EPU shocks can affect all variables contemporaneously while no other shock affects EPU on impact.
+
+![IRF PAYEMS](output/irf_payems.png)
+
+**Figure note (Figure 1):** Impulse response function of month-on-month employment growth (PAYEMS) to a one-unit structural shock to the EPU index, estimated from the recursive VAR(1) with EPU ordered first. The solid black line shows the point estimate; the dashed red lines show the 95% bootstrap confidence bands (100 bootstrap replications). The horizontal axis shows months after the shock (0 to 24); the vertical axis shows the response in percentage points. The model is estimated on 1985M2–2019M12.
+
+![IRF INDPRO](output/irf_indpro.png)
+
+**Figure note (Figure 2):** Impulse response function of month-on-month industrial production growth (INDPRO) to a one-unit structural shock to the EPU index. Same specification as Figure 1.
+
+**INDPRO response:** An EPU shock causes an immediate negative response in industrial production growth. The effect troughs around month 3–4 at approximately −0.05 percentage points and is statistically significant (both confidence bands remain below zero) from months 2–10. The effect gradually dissipates and returns to zero by around month 20.
+
+**PAYEMS response:** Employment growth also responds negatively to an EPU shock, but the response is slower and more persistent. The effect troughs around month 4–5 at approximately −0.013 percentage points. The negative effect is statistically significant from months 2–12. Employment returns to its baseline more slowly than industrial production, consistent with firms being reluctant to hire under uncertainty.
+
+**Interpretation:** Higher economic policy uncertainty depresses both real activity variables. Industrial production reacts faster — firms cut output quickly — while employment adjusts more slowly, reflecting the higher costs of hiring and firing.
+
+---
+
+## Part II
+
+### 1. Unconditional Forecasts
+
+Using the VAR estimated on 1985M2–2019M12, we produce unconditional forecasts for 12 months ahead starting from March 2023. Future reduced-form residuals are set to zero in expectation.
+
+**Employment growth (PAYEMS):** The model predicts positive employment growth throughout the entire 12-month horizon. Growth starts at +0.043% in April 2023, remains flat in May, then increases gradually and monotonically, reaching +0.097% by March 2024. The forecast never turns negative, reflecting the VAR's mean-reversion toward the long-run positive average.
+
+**Industrial production growth (INDPRO):** Industrial production growth starts slightly negative (−0.029% in April, −0.031% in May 2023), turns positive in July 2023 (+0.020%), and increases steadily thereafter, reaching +0.126% by March 2024. The brief initial contraction reflects the low level of INDPRO growth observed in March 2023 (+0.376% the prior month, but the model's dynamics pull toward a transitory dip before recovery).
+
+![Unconditional PAYEMS](output/unco_payems.png)
+
+**Figure note (Figure 3):** Unconditional forecast for month-on-month employment growth (PAYEMS). The black line shows observed values in the 12 months prior to the forecast origin; the blue line shows the 12-month-ahead unconditional forecast produced by the VAR(1) estimated on 1985M2–2019M12, with March 2023 as the forecast origin (red dashed vertical line). Future reduced-form residuals are set to zero in expectation. The grey dotted horizontal line marks zero growth.
+
+![Unconditional INDPRO](output/unco_indpro.png)
+
+**Figure note (Figure 4):** Unconditional forecast for month-on-month industrial production growth (INDPRO). Same specification as Figure 3.
+
+Both series show growth increasing over the forecast horizon, consistent with the VAR's mean-reversion dynamics.
+
+---
+
+### 2. Structural Forecast (Election EPU Scenario)
+
+We impose a scenario in which the EPU index in April–August 2023 follows the same path as in October 2020–February 2021 (the period before, during, and after the last U.S. national elections). The imposed EPU path is:
+
+| Month (2023) | Source | EPU value |
+|---|---|---|
+| April | Oct 2020 | 305.8 |
+| May | Nov 2020 | 327.6 |
+| June | Dec 2020 | 326.6 |
+| July | Jan 2021 | 261.3 |
+| August | Feb 2021 | 187.5 |
+
+From September 2023 onward, EPU evolves endogenously under the VAR. The structural forecast assumes that deviations of EPU from the reduced-form baseline are generated by identified EPU shocks, using the normalized first column of the Cholesky impact matrix P.
+
+![Structural PAYEMS](output/struct_payems.png)
+
+**Figure note (Figure 5):** Employment growth (PAYEMS) forecasts: unconditional (blue solid) versus structural election scenario (red dashed). The black line shows observed values in the 12 months prior to the forecast origin (March 2023, grey dotted vertical line). The structural forecast imposes the EPU path from October 2020–February 2021 for April–August 2023, attributing EPU deviations from the unconditional forecast to identified EPU shocks via the Cholesky impact matrix. From September 2023 onward, EPU evolves endogenously. The VAR(1) is estimated on 1985M2–2019M12.
+
+![Structural INDPRO](output/struct_indpro.png)
+
+**Figure note (Figure 6):** Industrial production growth (INDPRO) forecasts: unconditional (blue solid) versus structural election scenario (red dashed). Same specification as Figure 5.
+
+**Employment growth (PAYEMS):** The structural forecast turns negative from May through November 2023, troughing at −0.091% in July 2023. It only returns to positive in December 2023 and gradually recovers to +0.060% by March 2024 — still well below the unconditional forecast.
+
+**Industrial production growth (INDPRO):** The effect is much stronger. INDPRO growth falls sharply to around −0.446% in June–July 2023, remains deeply negative through November, and only approaches zero by February 2024. It barely turns positive (+0.051%) by March 2024.
+
+---
+
+### 3. Comparison of Forecasts
+
+Yes, the forecasts differ substantially. The unconditional forecast predicts mildly positive growth for both variables throughout the horizon. The structural forecast predicts a significant contraction in both employment and industrial production during mid-2023, driven by the spike in economic policy uncertainty associated with the hypothetical election.
+
+The key difference is the **source of the EPU movement**. The unconditional forecast lets EPU evolve endogenously based on its own past dynamics. The structural forecast imposes a specific EPU path and attributes it entirely to identified EPU shocks — meaning the high uncertainty is assumed to be an exogenous policy shock that propagates through the economy via the estimated structural impact matrix. Because EPU is ordered first in the Cholesky scheme, an EPU shock immediately depresses all other variables, which explains the sharper and more persistent contraction in the structural forecast.
+
+---
+
+### 4. Three Shortcomings
+
+- **Small VAR with only four variables:** The model includes only EPU, employment, industrial production, and PCE inflation. It omits many relevant macroeconomic variables (e.g., interest rates, exchange rates, commodity prices) that may affect the transmission of uncertainty shocks and could confound the results.
+
+- **Recursive identification may be inappropriate:** The Cholesky identification assumes that EPU does not respond contemporaneously to employment, output, or inflation shocks. In practice, policy uncertainty may react quickly to economic news within the same month, violating this assumption and potentially biasing the estimated impulse responses.
+
+- **The EPU index conflates different sources of uncertainty:** The Baker-Bloom-Davis EPU index measures general policy uncertainty using newspaper coverage, tax code provisions, and forecaster disagreement. Using it as a proxy for election uncertainty specifically assumes that the index during the 2020 election period captures the same type of uncertainty as a hypothetical 2023 election — which may not hold if the 2020 period was also influenced by COVID-19 and other confounding events.
