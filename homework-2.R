@@ -81,22 +81,38 @@ dir.create("output", showWarnings = FALSE)
 png("output/data_figure.png", width = 1200, height = 800)
 par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
 
-pcepi_plot <- pcepi_raw[as.Date(pcepi_raw$observation_date) >= as.Date("1985-01-01"), ]
+pcepi_plot <- pcepi_raw[
+  as.Date(pcepi_raw$observation_date) >= as.Date("1985-01-01") &
+    as.Date(pcepi_raw$observation_date) <= as.Date("2023-03-01"),
+]
 plot(as.Date(pcepi_plot$observation_date), pcepi_plot$PCEPI,
      type = "l", col = "steelblue", main = "PCEPI (levels)",
      xlab = "Date", ylab = "Index")
 
-payems_plot <- payems_raw[as.Date(payems_raw$observation_date) >= as.Date("1985-01-01"), ]
+payems_plot <- payems_raw[
+  as.Date(payems_raw$observation_date) >= as.Date("1985-01-01") &
+    as.Date(payems_raw$observation_date) <= as.Date("2023-03-01"),
+]
 plot(as.Date(payems_plot$observation_date), payems_plot$PAYEMS,
      type = "l", col = "steelblue", main = "PAYEMS (levels, thousands)",
      xlab = "Date", ylab = "Thousands of persons")
 
-indpro_plot <- indpro_raw[as.Date(indpro_raw$observation_date) >= as.Date("1985-01-01"), ]
+indpro_plot <- indpro_raw[
+  as.Date(indpro_raw$observation_date) >= as.Date("1985-01-01") &
+    as.Date(indpro_raw$observation_date) <= as.Date("2023-03-01"),
+]
 plot(as.Date(indpro_plot$observation_date), indpro_plot$INDPRO,
      type = "l", col = "steelblue", main = "INDPRO (levels)",
      xlab = "Date", ylab = "Index (2017=100)")
 
-epu_plot <- epu_raw_clean[epu_raw_clean$year >= 1985, ]
+epu_plot <- epu_raw_clean[
+  epu_raw_clean$year > 1985 |
+    (epu_raw_clean$year == 1985 & epu_raw_clean$month >= 1),
+]
+epu_plot <- epu_plot[
+  epu_plot$year < 2023 |
+    (epu_plot$year == 2023 & epu_plot$month <= 3),
+]
 plot(as.Date(paste(epu_plot$year, epu_plot$month, "01", sep = "-")), epu_plot$epu,
      type = "l", col = "steelblue", main = "News-Based Policy Uncertainty Index (levels)",
      xlab = "Date", ylab = "Index")
@@ -137,17 +153,38 @@ svar.one <- SVAR(var.est1, Amat = a.mat, Bmat = b.mat, max.iter = 10000, hessian
 # ── IRFs for PAYEMS and INDPRO ─────────────────────────────
 
 irf_payems <- irf(svar.one, impulse = "epu", response = "payems_g",
-                  n.ahead = 24, ortho = TRUE, boot = TRUE, ci = 0.95)
+                  n.ahead = 24, ortho = TRUE, boot = TRUE, ci = 0.95,
+                  runs = 1000, seed = 123)
 
 irf_indpro <- irf(svar.one, impulse = "epu", response = "indpro_g",
-                  n.ahead = 24, ortho = TRUE, boot = TRUE, ci = 0.95)
+                  n.ahead = 24, ortho = TRUE, boot = TRUE, ci = 0.95,
+                  runs = 1000, seed = 123)
+
+plot_irf_response <- function(irf_result, response, main) {
+  horizon <- 0:24
+  point <- irf_result$irf$epu[, response]
+  lower <- irf_result$Lower$epu[, response]
+  upper <- irf_result$Upper$epu[, response]
+
+  plot(horizon, point, type = "l", col = "black", lwd = 1.5,
+       ylim = range(c(lower, upper, 0)), main = main,
+       xlab = "Months after shock", ylab = "Response (percentage points)")
+  lines(horizon, lower, col = "firebrick", lty = 2)
+  lines(horizon, upper, col = "firebrick", lty = 2)
+  abline(h = 0, col = "grey50", lty = 3)
+  legend("bottomright", legend = c("Point estimate", "95% bootstrap confidence band"),
+         col = c("black", "firebrick"), lty = c(1, 2), lwd = c(1.5, 1),
+         bty = "n")
+}
 
 png("output/irf_payems.png", width = 800, height = 600)
-plot(irf_payems, main = "IRF: EPU shock → Employment growth (PAYEMS)")
+plot_irf_response(irf_payems, "payems_g",
+                  "IRF: EPU shock → Employment growth (PAYEMS)")
 dev.off()
 
 png("output/irf_indpro.png", width = 800, height = 600)
-plot(irf_indpro, main = "IRF: EPU shock → Industrial production growth (INDPRO)")
+plot_irf_response(irf_indpro, "indpro_g",
+                  "IRF: EPU shock → Industrial production growth (INDPRO)")
 dev.off()
 
 # ── Save all numerical output to file ─────────────────────
